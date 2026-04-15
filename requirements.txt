@@ -1,4 +1,7 @@
-openwakeword==0.6.0
+# openwakeword installed separately in Dockerfile with --no-deps to avoid tflite-runtime
 pyzmq==25.1.2
 nats-py==2.7.2
 numpy==1.26.4
+onnxruntime==1.18.1
+scipy>=1.9.0
+librosa>=0.9.2
