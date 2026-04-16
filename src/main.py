@@ -135,8 +135,8 @@ async def main():
             disconnected_cb=lambda: logger.warning("NATS disconnected"),
         )
         logger.info(f"Connected to NATS: {config.nats_url}")
-        await nc.subscribe("conversation.started", cb=_on_conversation_started)
-        await nc.subscribe("conversation.ended", cb=_on_conversation_ended)
+        await nc.subscribe("mordomo.conversation.started", cb=_on_conversation_started)
+        await nc.subscribe("mordomo.conversation.ended", cb=_on_conversation_ended)
     except Exception as e:
         logger.warning(f"NATS unavailable: {e} — running without NATS (detection events will be lost)")
         nc = None
@@ -153,7 +153,15 @@ async def main():
                 f"Wake word detected! confidence={event['confidence']:.3f} session={event['session_id']}"
             )
             if nc:
-                await nc.publish("wake_word.detected", json.dumps(event).encode())
+                await nc.publish("mordomo.wake_word.detected", json.dumps(event).encode())
+                # Publish audio snippet separately for speaker-verification
+                if event.get("audio_snippet"):
+                    snippet_payload = json.dumps({
+                        "audio_b64": event["audio_snippet"],
+                        "sample_rate": config.sample_rate,
+                        "session_id": event["session_id"],
+                    }).encode()
+                    await nc.publish("mordomo.audio.snippet", snippet_payload)
     except (asyncio.CancelledError, KeyboardInterrupt):
         pass
     finally:

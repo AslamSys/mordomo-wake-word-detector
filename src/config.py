@@ -21,8 +21,9 @@ class Config:
     nats_url: str = field(default_factory=lambda: os.getenv("NATS_URL", "nats://nats:4222"))
 
     # Optional: include 1s audio snippet in the detection event
+    # Default true — required for mordomo.audio.snippet publish (speaker-verification)
     include_audio_snippet: bool = field(
-        default_factory=lambda: os.getenv("INCLUDE_AUDIO_SNIPPET", "false").lower() == "true"
+        default_factory=lambda: os.getenv("INCLUDE_AUDIO_SNIPPET", "true").lower() == "true"
     )
     # Snippet buffer: 1 second = 16000 samples
     snippet_samples: int = 16000
