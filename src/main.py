@@ -128,11 +128,20 @@ async def main():
 
     # ── NATS ──────────────────────────────────────────────────────────────
     try:
+        async def error_cb(e):
+            logger.error(f"NATS error: {e}")
+
+        async def reconnected_cb():
+            logger.warning("NATS reconnected")
+
+        async def disconnected_cb():
+            logger.warning("NATS disconnected")
+
         nc = await nats.connect(
             config.nats_url,
-            error_cb=lambda e: logger.error(f"NATS error: {e}"),
-            reconnected_cb=lambda: logger.warning("NATS reconnected"),
-            disconnected_cb=lambda: logger.warning("NATS disconnected"),
+            error_cb=error_cb,
+            reconnected_cb=reconnected_cb,
+            disconnected_cb=disconnected_cb,
         )
         logger.info(f"Connected to NATS: {config.nats_url}")
         await nc.subscribe("mordomo.conversation.started", cb=_on_conversation_started)
