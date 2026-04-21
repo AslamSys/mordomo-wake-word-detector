@@ -144,8 +144,42 @@ async def main():
             disconnected_cb=disconnected_cb,
         )
         logger.info(f"Connected to NATS: {config.nats_url}")
+        
+        # Audio handler for virtual mic (NATS)
+        async def _nats_audio_handler(msg):
+            pcm_bytes = msg.data
+            # Process frame using the detector (it's synchronized via call_soon_threadsafe if needed, 
+            # but here we can just put it in a processing task or call detector directly)
+            # Since detector is also used by _zmq_loop in a separate thread, we need caution.
+            # However, in debug mode, typically only one source is streaming.
+            
+            # Simple approach: simulate ZMQ frame
+            global _frame_sequence
+            _frame_sequence += 1
+            
+            # Internal OpenWakeWord handles the 16kHz chunking
+            confidence = detector.process_frame(pcm_bytes)
+            if confidence is not None:
+                snippet_b64 = None
+                if config.include_audio_snippet:
+                    samples = np.frombuffer(pcm_bytes, dtype=np.int16)
+                    _snippet_buffer.extend(samples.tolist())
+                    snippet = np.array(list(_snippet_buffer), dtype=np.int16)
+                    snippet_b64 = base64.b64encode(snippet.tobytes()).decode()
+
+                event = {
+                    "timestamp": time.time(),
+                    "confidence": confidence,
+                    "keyword": config.wake_word,
+                    "audio_snippet": snippet_b64,
+                    "sequence": _frame_sequence,
+                    "session_id": str(uuid.uuid4()),
+                }
+                detection_queue.put_nowait(event)
+
         await nc.subscribe("mordomo.conversation.started", cb=_on_conversation_started)
         await nc.subscribe("mordomo.conversation.ended", cb=_on_conversation_ended)
+        await nc.subscribe("mordomo.audio.vad.speech", cb=_nats_audio_handler)
     except Exception as e:
         logger.warning(f"NATS unavailable: {e} — running without NATS (detection events will be lost)")
         nc = None
