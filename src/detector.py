@@ -38,12 +38,19 @@ class WakeWordDetector:
             # Key in predictions dict is the model filename without extension
             self._model_key = os.path.splitext(os.path.basename(model_path))[0]
         else:
+            target_word = self._wake_word or "alexa"
             if model_path:
-                logger.warning(f"Model file not found: {model_path} — falling back to built-in 'alexa'")
+                logger.warning(f"Model file not found: {model_path} — falling back to built-in '{target_word}'")
             else:
-                logger.info("No custom model configured — using built-in 'alexa' for testing")
-            self._model = Model(wakeword_models=["alexa"], inference_framework="onnx")
-            self._model_key = "alexa"
+                logger.info(f"No custom model configured — using built-in '{target_word}'")
+            
+            try:
+                self._model = Model(wakeword_models=[target_word], inference_framework="onnx")
+                self._model_key = target_word
+            except Exception as e:
+                logger.error(f"Failed to load built-in model '{target_word}': {e}. Falling back to 'alexa'")
+                self._model = Model(wakeword_models=["alexa"], inference_framework="onnx")
+                self._model_key = "alexa"
 
         logger.info(f"Wake word detector ready (key={self._model_key}, threshold={self._threshold})")
 
