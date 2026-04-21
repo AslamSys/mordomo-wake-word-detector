@@ -57,6 +57,8 @@ def _zmq_loop(detector: WakeWordDetector, detection_queue: asyncio.Queue, loop: 
 
     logger.info(f"ZeroMQ SUB connected to {config.zmq_vad_url}, topic={config.zmq_topic}")
 
+    last_telemetry = 0
+    _received_frames = 0
     while True:
         try:
             parts = sock.recv_multipart()
@@ -64,6 +66,12 @@ def _zmq_loop(detector: WakeWordDetector, detection_queue: asyncio.Queue, loop: 
             continue
         except zmq.ZMQError:
             break
+
+        _received_frames += 1
+        now = time.time()
+        if now - last_telemetry > 5.0:
+            logger.info(f"ZeroMQ SUB heartbeat: received {_received_frames} frames so far. Current buffer length: {len(_snippet_buffer)}")
+            last_telemetry = now
 
         if len(parts) < 2:
             continue
