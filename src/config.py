@@ -5,7 +5,10 @@ from dataclasses import dataclass, field
 @dataclass
 class Config:
     # ZeroMQ — subscribe to VAD audio stream
-    zmq_vad_url: str = field(default_factory=lambda: os.getenv("ZMQ_VAD_URL", "tcp://audio-capture-vad:5555"))
+    zmq_vad_url: str = field(
+        default_factory=lambda: os.getenv("ZMQ_VAD_URL")
+        or os.getenv("ZMQ_SUB_URL", "tcp://mordomo-audio-capture-vad:5555")
+    )
     zmq_topic: str = field(default_factory=lambda: os.getenv("ZMQ_TOPIC", "audio.raw"))
 
     # OpenWakeWord model — custom ASLAM model if present, else built-in "alexa" for testing

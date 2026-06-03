@@ -26,6 +26,28 @@
 
 ---
 
+## 🔌 Entrada — ZeroMQ do VAD
+
+| Origem | Valor |
+|--------|--------|
+| Serviço | `mordomo-audio-capture-vad` |
+| URL | `tcp://mordomo-audio-capture-vad:5555` (`ZMQ_VAD_URL` ou `ZMQ_SUB_URL` no `.env`) |
+| Tópico | `audio.raw` |
+| Formato | PCM **16 kHz**, mono, int16 |
+
+O VAD deve estar com `MIC_OPEN_ON_START=true` e publicando frames no ZMQ (stream contínuo). Logs deste serviço: `ZeroMQ SUB heartbeat: received N frames`.
+
+**Ordem de testes da pipeline de áudio:** 1) VAD → 2) **wake-word** (este) → 3) speaker-verification → 4) whisper-asr.
+
+**Teste:**
+
+```bash
+docker logs -f mordomo-wake-word-detector   # heartbeat com frames > 0
+# Modelo custom "mordomo"/"ASLAM" ainda em treino — hoje pode cair em fallback "alexa"
+```
+
+---
+
 ## 🚀 Quick Start
 
 ### 1️⃣ Treinar modelo "ASLAM"
